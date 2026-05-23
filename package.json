@@ -1,0 +1,25 @@
+{
+  "name": "pro-english-bd-practice-tool",
+  "version": "1.0.0",
+  "description": "Bangla to English Sentence Practice Tool - PRO English BD",
+  "private": true,
+  "scripts": {
+    "dev:server": "node server/index.js",
+    "dev:client": "cd client && npx vite --host",
+    "build": "cd client && npx vite build",
+    "start": "node server/index.js",
+    "seed": "node server/seed.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "better-sqlite3": "^9.4.3",
+    "cors": "^2.8.5",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "csv-parse": "^5.5.3",
+    "csv-stringify": "^6.4.5",
+    "xlsx": "^0.18.5",
+    "dotenv": "^16.3.1"
+  }
+}
