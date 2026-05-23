@@ -17,8 +17,6 @@ import ManageHomework from './pages/admin/ManageHomework';
 import Students from './pages/admin/Students';
 import Settings from './pages/admin/Settings';
 import Upload from './pages/admin/Upload';
-import ReviewQueue from './pages/admin/ReviewQueue';
-import Synonyms from './pages/admin/Synonyms';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -34,7 +32,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} /> : <Login />} />
       <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
-      
+
       {/* Student Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
       <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
@@ -42,7 +40,7 @@ function AppRoutes() {
       <Route path="/homework" element={<ProtectedRoute><Homework /></ProtectedRoute>} />
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
       <Route path="/mistakes" element={<ProtectedRoute><Mistakes /></ProtectedRoute>} />
-      
+
       {/* Admin Routes */}
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/sentences" element={<ProtectedRoute adminOnly><ManageSentences /></ProtectedRoute>} />
@@ -51,8 +49,6 @@ function AppRoutes() {
       <Route path="/admin/students" element={<ProtectedRoute adminOnly><Students /></ProtectedRoute>} />
       <Route path="/admin/settings" element={<ProtectedRoute adminOnly><Settings /></ProtectedRoute>} />
       <Route path="/admin/upload" element={<ProtectedRoute adminOnly><Upload /></ProtectedRoute>} />
-      <Route path="/admin/review" element={<ProtectedRoute adminOnly><ReviewQueue /></ProtectedRoute>} />
-      <Route path="/admin/synonyms" element={<ProtectedRoute adminOnly><Synonyms /></ProtectedRoute>} />
 
       <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : '/login'} />} />
       <Route path="*" element={<Navigate to="/" />} />

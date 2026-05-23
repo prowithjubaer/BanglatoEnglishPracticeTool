@@ -10,7 +10,7 @@ async function request(endpoint, options = {}) {
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
-  
+
   if (res.status === 401) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -90,26 +90,7 @@ export const api = {
   getSentenceReport: (id) => request(`/admin/sentence-report/${id}`),
   getBatchReport: (id) => request(`/admin/batch-report/${id}`),
 
-  // Review Queue
-  requestReview: (data) => request('/review/request', { method: 'POST', body: JSON.stringify(data) }),
-  getReviewQueue: (params) => request(`/review/queue?${new URLSearchParams(params || {})}`),
-  submitReview: (id, data) => request(`/review/review/${id}`, { method: 'POST', body: JSON.stringify(data) }),
-  dismissReview: (id) => request(`/review/dismiss/${id}`, { method: 'POST' }),
-  getReviewStats: () => request('/review/stats'),
-
-  // Synonyms
-  getSynonyms: () => request('/review/synonyms'),
-  createSynonym: (data) => request('/review/synonyms', { method: 'POST', body: JSON.stringify(data) }),
-  updateSynonym: (id, data) => request(`/review/synonyms/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteSynonym: (id) => request(`/review/synonyms/${id}`, { method: 'DELETE' }),
-
-  // Grammar Patterns
-  getPatterns: () => request('/review/patterns'),
-  createPattern: (data) => request('/review/patterns', { method: 'POST', body: JSON.stringify(data) }),
-  updatePattern: (id, data) => request(`/review/patterns/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deletePattern: (id) => request(`/review/patterns/${id}`, { method: 'DELETE' }),
-  
-  // Upload (special - uses FormData)
+  // Upload (FormData)
   uploadFile: async (file) => {
     const token = getToken();
     const formData = new FormData();

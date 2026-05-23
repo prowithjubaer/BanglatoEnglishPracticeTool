@@ -41,16 +41,16 @@ function StudentNav() {
               <span className="text-amber-600 text-sm font-semibold">{user?.total_xp || 0} XP</span>
               <span className="text-xs">🔥 {user?.streak || 0}</span>
             </div>
-            <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50">
+            <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50 relative">
               <div className="w-8 h-8 bg-brand-navy rounded-full flex items-center justify-center text-white text-sm font-bold">
                 {user?.name?.[0]?.toUpperCase()}
               </div>
             </button>
             {menuOpen && (
-              <div className="absolute top-14 right-4 bg-white rounded-xl shadow-lg border p-2 min-w-[160px]">
+              <div className="absolute top-14 right-4 bg-white rounded-xl shadow-lg border p-2 min-w-[160px] z-50">
                 <p className="px-3 py-2 text-sm font-medium text-gray-700">{user?.name}</p>
                 <hr className="my-1" />
-                {user?.role === 'admin' && <Link to="/admin" className="block px-3 py-2 text-sm hover:bg-gray-50 rounded-lg">Admin Panel</Link>}
+                {user?.role === 'admin' && <Link to="/admin" className="block px-3 py-2 text-sm hover:bg-gray-50 rounded-lg" onClick={() => setMenuOpen(false)}>Admin Panel</Link>}
                 <button onClick={() => { logout(); navigate('/login'); }} className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">Logout</button>
               </div>
             )}
@@ -73,7 +73,7 @@ function StudentNav() {
 
 function AdminNav() {
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const links = [
@@ -81,9 +81,7 @@ function AdminNav() {
     { to: '/admin/sentences', label: 'Sentences', icon: '📝' },
     { to: '/admin/categories', label: 'Categories', icon: '📁' },
     { to: '/admin/homework', label: 'Homework', icon: '📋' },
-    { to: '/admin/review', label: 'Reviews', icon: '📩' },
     { to: '/admin/students', label: 'Students', icon: '👥' },
-    { to: '/admin/synonyms', label: 'Dictionary', icon: '📖' },
     { to: '/admin/upload', label: 'Upload', icon: '📤' },
     { to: '/admin/settings', label: 'Settings', icon: '⚙️' },
   ];

@@ -24,7 +24,7 @@ db.exec(`
     total_xp INTEGER DEFAULT 0,
     level INTEGER DEFAULT 1,
     streak INTEGER DEFAULT 0,
-    daily_goal INTEGER DEFAULT 10,
+    daily_goal INTEGER DEFAULT 20,
     last_active_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
@@ -56,29 +56,24 @@ db.exec(`
     bangla_sentence TEXT NOT NULL,
     advanced_version TEXT,
     explanation TEXT,
-    hint TEXT,
+    structure_hint TEXT,
+    fill_blank_hint TEXT,
+    first_word_hint TEXT,
+    word_bank_words TEXT,
     category_id INTEGER,
     subcategory_id INTEGER,
     difficulty TEXT DEFAULT 'Easy',
-    checking_mode TEXT DEFAULT 'flexible' CHECK(checking_mode IN ('exact','flexible','ai')),
-    grammar_pattern TEXT,
-    mistake_focus TEXT,
-    teacher_note TEXT,
-    required_words TEXT,
-    optional_words TEXT,
-    forbidden_words TEXT,
-    synonym_group TEXT,
-    partial_match_enabled INTEGER DEFAULT 1,
-    correct_similarity_threshold INTEGER DEFAULT 90,
-    partial_similarity_threshold INTEGER DEFAULT 70,
-    review_after_correct_days INTEGER,
-    review_after_wrong_days INTEGER,
+    practice_mode TEXT DEFAULT 'typing' CHECK(practice_mode IN ('typing','word_bank','fill_blank','mixed')),
+    homework_mode TEXT DEFAULT 'learning' CHECK(homework_mode IN ('learning','test')),
+    checking_mode TEXT DEFAULT 'flexible' CHECK(checking_mode IN ('exact','flexible')),
     is_active INTEGER DEFAULT 1,
     is_premium INTEGER DEFAULT 0,
     tags TEXT,
-    audio_bangla TEXT,
-    audio_english TEXT,
+    sort_order INTEGER DEFAULT 0,
+    review_after_correct_days INTEGER DEFAULT 7,
+    review_after_not_matched_days INTEGER DEFAULT 1,
     created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (category_id) REFERENCES categories(id),
     FOREIGN KEY (subcategory_id) REFERENCES subcategories(id)
   );
@@ -86,7 +81,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS sentence_answers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sentence_id INTEGER NOT NULL,
-    correct_answer TEXT NOT NULL,
+    accepted_answer TEXT NOT NULL,
     normalized_answer TEXT,
     sort_order INTEGER DEFAULT 0,
     FOREIGN KEY (sentence_id) REFERENCES sentences(id) ON DELETE CASCADE
@@ -96,16 +91,15 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     sentence_id INTEGER NOT NULL,
-    status TEXT DEFAULT 'new' CHECK(status IN ('new','attempted','correct','almost_correct','wrong','needs_review','mastered')),
+    status TEXT DEFAULT 'new' CHECK(status IN ('new','correct','not_matched','needs_practice','mastered')),
     attempts_count INTEGER DEFAULT 0,
     correct_count INTEGER DEFAULT 0,
-    almost_correct_count INTEGER DEFAULT 0,
-    wrong_count INTEGER DEFAULT 0,
+    not_matched_count INTEGER DEFAULT 0,
     last_answer TEXT,
     last_result TEXT,
-    last_mistake_type TEXT,
     next_review_at TEXT,
     mastered_at TEXT,
+    xp_earned_total INTEGER DEFAULT 0,
     last_attempted_at TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),
@@ -119,78 +113,33 @@ db.exec(`
     user_id INTEGER NOT NULL,
     sentence_id INTEGER NOT NULL,
     submitted_answer TEXT NOT NULL,
-    result_type TEXT DEFAULT 'wrong' CHECK(result_type IN ('correct','almost_correct','wrong')),
-    is_correct INTEGER DEFAULT 0,
-    similarity_score REAL DEFAULT 0,
-    mistake_type TEXT,
+    normalized_answer TEXT,
+    result TEXT DEFAULT 'not_matched' CHECK(result IN ('correct','not_matched')),
     xp_earned INTEGER DEFAULT 0,
-    feedback_shown INTEGER DEFAULT 1,
-    review_requested INTEGER DEFAULT 0,
     submitted_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (sentence_id) REFERENCES sentences(id) ON DELETE CASCADE
-  );
-
-  -- Teacher Review Queue
-  CREATE TABLE IF NOT EXISTS review_queue (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    submission_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    sentence_id INTEGER NOT NULL,
-    student_answer TEXT NOT NULL,
-    status TEXT DEFAULT 'pending' CHECK(status IN ('pending','reviewed','dismissed')),
-    admin_result TEXT CHECK(admin_result IN ('correct','almost_correct','wrong')),
-    admin_feedback TEXT,
-    admin_mistake_type TEXT,
-    admin_xp_awarded INTEGER DEFAULT 0,
-    add_as_correct_answer INTEGER DEFAULT 0,
-    reviewed_by INTEGER,
-    reviewed_at TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (submission_id) REFERENCES submissions(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (sentence_id) REFERENCES sentences(id) ON DELETE CASCADE,
-    FOREIGN KEY (reviewed_by) REFERENCES users(id)
-  );
-
-  -- Synonym Dictionary
-  CREATE TABLE IF NOT EXISTS synonym_groups (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    group_name TEXT NOT NULL,
-    words TEXT NOT NULL,
-    is_active INTEGER DEFAULT 1,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-
-  -- Grammar Patterns
-  CREATE TABLE IF NOT EXISTS grammar_patterns (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT,
-    expected_structure TEXT,
-    required_markers TEXT,
-    forbidden_markers TEXT,
-    tense_category TEXT,
-    is_active INTEGER DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS homework_sets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     description TEXT,
+    batch_id INTEGER,
     category_id INTEGER,
     subcategory_id INTEGER,
     assigned_by INTEGER,
-    batch_id INTEGER,
     start_date TEXT,
     due_date TEXT,
-    xp_bonus INTEGER DEFAULT 10,
-    allow_late INTEGER DEFAULT 1,
-    show_answer_after_wrong INTEGER DEFAULT 1,
+    homework_mode TEXT DEFAULT 'learning' CHECK(homework_mode IN ('learning','test')),
+    practice_mode TEXT DEFAULT 'typing' CHECK(practice_mode IN ('typing','word_bank','fill_blank','mixed')),
+    xp_per_correct INTEGER DEFAULT 5,
+    completion_bonus INTEGER DEFAULT 10,
+    allow_late_submission INTEGER DEFAULT 1,
     allow_retry INTEGER DEFAULT 1,
     shuffle_sentences INTEGER DEFAULT 0,
+    show_answer_after_submit INTEGER DEFAULT 1,
     lock_next_until_answered INTEGER DEFAULT 0,
-    time_limit_seconds INTEGER,
     is_active INTEGER DEFAULT 1,
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (category_id) REFERENCES categories(id),
@@ -215,7 +164,6 @@ db.exec(`
     score INTEGER DEFAULT 0,
     total_questions INTEGER DEFAULT 0,
     correct_answers INTEGER DEFAULT 0,
-    almost_correct_answers INTEGER DEFAULT 0,
     accuracy REAL DEFAULT 0,
     UNIQUE(homework_id, user_id),
     FOREIGN KEY (homework_id) REFERENCES homework_sets(id) ON DELETE CASCADE,
@@ -257,11 +205,11 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_progress_user ON student_sentence_progress(user_id);
   CREATE INDEX IF NOT EXISTS idx_progress_sentence ON student_sentence_progress(sentence_id);
   CREATE INDEX IF NOT EXISTS idx_progress_review ON student_sentence_progress(next_review_at);
+  CREATE INDEX IF NOT EXISTS idx_progress_status ON student_sentence_progress(status);
   CREATE INDEX IF NOT EXISTS idx_submissions_user ON submissions(user_id);
+  CREATE INDEX IF NOT EXISTS idx_submissions_sentence ON submissions(sentence_id);
   CREATE INDEX IF NOT EXISTS idx_sentences_category ON sentences(category_id);
   CREATE INDEX IF NOT EXISTS idx_sentences_subcategory ON sentences(subcategory_id);
-  CREATE INDEX IF NOT EXISTS idx_review_queue_status ON review_queue(status);
-  CREATE INDEX IF NOT EXISTS idx_submissions_review ON submissions(review_requested);
 `);
 
 module.exports = db;

@@ -19,7 +19,6 @@ app.use('/api/practice', require('./routes/practice'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/homework', require('./routes/homework'));
 app.use('/api/admin', require('./routes/admin'));
-app.use('/api/review', require('./routes/review'));
 
 // Serve frontend in production
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
@@ -32,4 +31,5 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`PRO English BD Server running on port ${PORT}`);
+  console.log(`No paid APIs used. System is fully offline-capable.`);
 });
