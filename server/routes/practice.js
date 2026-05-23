@@ -30,7 +30,7 @@ router.get('/next', authenticate, (req, res) => {
     let sentence;
 
     if (mode === 'review' || mode === 'needs_practice') {
-      // Not Matched / Needs Practice sentences
+      // Not Matched / Needs Practice sentences — show immediately (no wait for next_review_at)
       sentence = db.prepare(`
         SELECT s.*, c.name as category_name, sc.name as subcategory_name
         FROM sentences s
@@ -38,8 +38,7 @@ router.get('/next', authenticate, (req, res) => {
         LEFT JOIN subcategories sc ON s.subcategory_id = sc.id
         INNER JOIN student_sentence_progress p ON p.sentence_id = s.id AND p.user_id = ?
         WHERE s.is_active = 1 AND p.status IN ('not_matched','needs_practice')
-          AND (p.next_review_at IS NULL OR p.next_review_at <= datetime('now'))
-        ORDER BY p.next_review_at ASC LIMIT 1
+        ORDER BY p.last_attempted_at DESC LIMIT 1
       `).get(userId);
     } else if (mode === 'due') {
       // Due today
