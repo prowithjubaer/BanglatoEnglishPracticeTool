@@ -19,6 +19,7 @@ app.use('/api/practice', require('./routes/practice'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/homework', require('./routes/homework'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/review', require('./routes/review'));
 
 // Serve frontend in production
 const clientDist = path.join(__dirname, '..', 'client', 'dist');

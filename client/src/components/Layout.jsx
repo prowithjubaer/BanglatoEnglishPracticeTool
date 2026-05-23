@@ -81,7 +81,9 @@ function AdminNav() {
     { to: '/admin/sentences', label: 'Sentences', icon: '📝' },
     { to: '/admin/categories', label: 'Categories', icon: '📁' },
     { to: '/admin/homework', label: 'Homework', icon: '📋' },
+    { to: '/admin/review', label: 'Reviews', icon: '📩' },
     { to: '/admin/students', label: 'Students', icon: '👥' },
+    { to: '/admin/synonyms', label: 'Dictionary', icon: '📖' },
     { to: '/admin/upload', label: 'Upload', icon: '📤' },
     { to: '/admin/settings', label: 'Settings', icon: '⚙️' },
   ];

@@ -17,6 +17,8 @@ import ManageHomework from './pages/admin/ManageHomework';
 import Students from './pages/admin/Students';
 import Settings from './pages/admin/Settings';
 import Upload from './pages/admin/Upload';
+import ReviewQueue from './pages/admin/ReviewQueue';
+import Synonyms from './pages/admin/Synonyms';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -49,6 +51,8 @@ function AppRoutes() {
       <Route path="/admin/students" element={<ProtectedRoute adminOnly><Students /></ProtectedRoute>} />
       <Route path="/admin/settings" element={<ProtectedRoute adminOnly><Settings /></ProtectedRoute>} />
       <Route path="/admin/upload" element={<ProtectedRoute adminOnly><Upload /></ProtectedRoute>} />
+      <Route path="/admin/review" element={<ProtectedRoute adminOnly><ReviewQueue /></ProtectedRoute>} />
+      <Route path="/admin/synonyms" element={<ProtectedRoute adminOnly><Synonyms /></ProtectedRoute>} />
 
       <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : '/login'} />} />
       <Route path="*" element={<Navigate to="/" />} />

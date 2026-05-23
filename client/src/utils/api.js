@@ -87,6 +87,27 @@ export const api = {
   createBatch: (data) => request('/admin/batches', { method: 'POST', body: JSON.stringify(data) }),
   exportSentences: () => request('/admin/export'),
   exportStudents: () => request('/admin/export/students'),
+  getSentenceReport: (id) => request(`/admin/sentence-report/${id}`),
+  getBatchReport: (id) => request(`/admin/batch-report/${id}`),
+
+  // Review Queue
+  requestReview: (data) => request('/review/request', { method: 'POST', body: JSON.stringify(data) }),
+  getReviewQueue: (params) => request(`/review/queue?${new URLSearchParams(params || {})}`),
+  submitReview: (id, data) => request(`/review/review/${id}`, { method: 'POST', body: JSON.stringify(data) }),
+  dismissReview: (id) => request(`/review/dismiss/${id}`, { method: 'POST' }),
+  getReviewStats: () => request('/review/stats'),
+
+  // Synonyms
+  getSynonyms: () => request('/review/synonyms'),
+  createSynonym: (data) => request('/review/synonyms', { method: 'POST', body: JSON.stringify(data) }),
+  updateSynonym: (id, data) => request(`/review/synonyms/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteSynonym: (id) => request(`/review/synonyms/${id}`, { method: 'DELETE' }),
+
+  // Grammar Patterns
+  getPatterns: () => request('/review/patterns'),
+  createPattern: (data) => request('/review/patterns', { method: 'POST', body: JSON.stringify(data) }),
+  updatePattern: (id, data) => request(`/review/patterns/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deletePattern: (id) => request(`/review/patterns/${id}`, { method: 'DELETE' }),
   
   // Upload (special - uses FormData)
   uploadFile: async (file) => {
@@ -100,4 +121,18 @@ export const api = {
     });
     return res.json();
   },
+
+  // Upload with preview (2-step)
+  uploadPreview: async (file) => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE}/admin/upload/preview`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    return res.json();
+  },
+  uploadConfirm: (data) => request('/admin/upload/confirm', { method: 'POST', body: JSON.stringify(data) }),
 };
