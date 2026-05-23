@@ -19,7 +19,7 @@ router.get('/student', authenticate, (req, res) => {
       SELECT 
         COUNT(*) as total_attempted,
         SUM(CASE WHEN status = 'correct' THEN 1 ELSE 0 END) as correct_count,
-        SUM(CASE WHEN status IN ('wrong','needs_review') THEN 1 ELSE 0 END) as wrong_count,
+        SUM(CASE WHEN status IN ('not_matched','needs_practice') THEN 1 ELSE 0 END) as not_matched_count,
         SUM(CASE WHEN status = 'mastered' THEN 1 ELSE 0 END) as mastered_count,
         SUM(CASE WHEN next_review_at <= datetime('now') AND status != 'mastered' THEN 1 ELSE 0 END) as due_today
       FROM student_sentence_progress WHERE user_id = ?
@@ -37,7 +37,10 @@ router.get('/student', authenticate, (req, res) => {
     const newSentences = totalSentences - (stats.total_attempted || 0);
 
     // Accuracy
-    const totalSubmissions = db.prepare('SELECT COUNT(*) as total, SUM(is_correct) as correct FROM submissions WHERE user_id = ?').get(userId);
+    const totalSubmissions = db.prepare(`
+      SELECT COUNT(*) as total, SUM(CASE WHEN result = 'correct' THEN 1 ELSE 0 END) as correct 
+      FROM submissions WHERE user_id = ?
+    `).get(userId);
     const accuracy = totalSubmissions.total > 0 ? Math.round((totalSubmissions.correct / totalSubmissions.total) * 100) : 0;
 
     // Category-wise progress
@@ -45,7 +48,7 @@ router.get('/student', authenticate, (req, res) => {
       SELECT c.id, c.name, c.icon,
         COUNT(p.id) as attempted,
         SUM(CASE WHEN p.status = 'mastered' THEN 1 ELSE 0 END) as mastered,
-        SUM(CASE WHEN p.status IN ('wrong','needs_review') THEN 1 ELSE 0 END) as needs_review,
+        SUM(CASE WHEN p.status IN ('not_matched','needs_practice') THEN 1 ELSE 0 END) as needs_practice,
         (SELECT COUNT(*) FROM sentences WHERE category_id = c.id AND is_active = 1) as total_in_category
       FROM categories c
       LEFT JOIN sentences s ON s.category_id = c.id
@@ -55,18 +58,18 @@ router.get('/student', authenticate, (req, res) => {
       ORDER BY c.sort_order
     `).all(userId);
 
-    // Weak areas (categories with lowest accuracy)
+    // Weak areas (categories with most not_matched)
     const weakAreas = db.prepare(`
       SELECT c.name, c.icon,
         COUNT(p.id) as attempted,
-        SUM(CASE WHEN p.last_result = 'wrong' THEN 1 ELSE 0 END) as wrong_count
+        SUM(CASE WHEN p.last_result = 'not_matched' THEN 1 ELSE 0 END) as not_matched_count
       FROM student_sentence_progress p
       JOIN sentences s ON s.id = p.sentence_id
       JOIN categories c ON c.id = s.category_id
       WHERE p.user_id = ? AND p.attempts_count > 0
       GROUP BY c.id
-      HAVING wrong_count > 0
-      ORDER BY (wrong_count * 1.0 / attempted) DESC
+      HAVING not_matched_count > 0
+      ORDER BY (not_matched_count * 1.0 / attempted) DESC
       LIMIT 3
     `).all(userId);
 
@@ -121,7 +124,7 @@ router.get('/leaderboard', authenticate, (req, res) => {
     const getLevel = db.prepare('SELECT name, badge FROM levels WHERE level_number = ?');
     users.forEach(u => {
       const lvl = getLevel.get(u.level);
-      u.level_name = lvl?.name || 'Beginner';
+      u.level_name = lvl?.name || 'Starter Speaker';
       u.level_badge = lvl?.badge || '🌱';
     });
 
@@ -131,7 +134,7 @@ router.get('/leaderboard', authenticate, (req, res) => {
   }
 });
 
-// Mistake notebook
+// Mistake notebook (Not Matched sentences)
 router.get('/mistakes', authenticate, (req, res) => {
   try {
     const userId = req.user.id;
@@ -139,26 +142,26 @@ router.get('/mistakes', authenticate, (req, res) => {
     const offset = (page - 1) * limit;
 
     const mistakes = db.prepare(`
-      SELECT s.bangla_sentence, s.advanced_version, s.explanation, s.id as sentence_id,
+      SELECT s.bangla_sentence, s.advanced_version, s.explanation, s.structure_hint, s.id as sentence_id,
         c.name as category_name, sc.name as subcategory_name,
-        p.wrong_count, p.last_answer, p.status
+        p.not_matched_count, p.last_answer, p.status
       FROM student_sentence_progress p
       JOIN sentences s ON s.id = p.sentence_id
       LEFT JOIN categories c ON c.id = s.category_id
       LEFT JOIN subcategories sc ON sc.id = s.subcategory_id
-      WHERE p.user_id = ? AND p.wrong_count > 0
-      ORDER BY p.wrong_count DESC, p.updated_at DESC
+      WHERE p.user_id = ? AND p.not_matched_count > 0
+      ORDER BY p.not_matched_count DESC, p.updated_at DESC
       LIMIT ? OFFSET ?
     `).all(userId, parseInt(limit), offset);
 
-    // Get correct answers for each
-    const getAnswers = db.prepare('SELECT correct_answer FROM sentence_answers WHERE sentence_id = ? ORDER BY sort_order');
+    // Get accepted answers for each
+    const getAnswers = db.prepare('SELECT accepted_answer FROM sentence_answers WHERE sentence_id = ? ORDER BY sort_order');
     mistakes.forEach(m => {
-      m.correct_answers = getAnswers.all(m.sentence_id).map(a => a.correct_answer);
+      m.accepted_answers = getAnswers.all(m.sentence_id).map(a => a.accepted_answer);
     });
 
     const total = db.prepare(`
-      SELECT COUNT(*) as count FROM student_sentence_progress WHERE user_id = ? AND wrong_count > 0
+      SELECT COUNT(*) as count FROM student_sentence_progress WHERE user_id = ? AND not_matched_count > 0
     `).get(userId).count;
 
     res.json({ mistakes, total, page: parseInt(page), pages: Math.ceil(total / limit) });

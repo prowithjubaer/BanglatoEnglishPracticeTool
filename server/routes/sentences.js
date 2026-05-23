@@ -66,19 +66,21 @@ router.get('/admin/:id', authenticate, requireAdmin, (req, res) => {
 // Create sentence (admin)
 router.post('/', authenticate, requireAdmin, (req, res) => {
   try {
-    const { bangla_sentence, answers, advanced_version, explanation, hint, category_id, subcategory_id, difficulty, checking_mode, is_premium, tags } = req.body;
+    const { bangla_sentence, answers, advanced_version, explanation, structure_hint, fill_blank_hint, first_word_hint, word_bank_words, category_id, subcategory_id, difficulty, practice_mode, homework_mode, checking_mode, is_premium, tags } = req.body;
     if (!bangla_sentence || !answers || answers.length === 0) {
       return res.status(400).json({ error: 'Bangla sentence and at least one answer required' });
     }
 
     const result = db.prepare(`
-      INSERT INTO sentences (bangla_sentence, advanced_version, explanation, hint, category_id, subcategory_id, difficulty, checking_mode, is_premium, tags)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(bangla_sentence, advanced_version || null, explanation || null, hint || null,
-      category_id || null, subcategory_id || null, difficulty || 'Easy', checking_mode || 'flexible',
+      INSERT INTO sentences (bangla_sentence, advanced_version, explanation, structure_hint, fill_blank_hint, first_word_hint, word_bank_words, category_id, subcategory_id, difficulty, practice_mode, homework_mode, checking_mode, is_premium, tags)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(bangla_sentence, advanced_version || null, explanation || null, structure_hint || null,
+      fill_blank_hint || null, first_word_hint || null, word_bank_words || null,
+      category_id || null, subcategory_id || null, difficulty || 'Easy',
+      practice_mode || 'typing', homework_mode || 'learning', checking_mode || 'flexible',
       is_premium ? 1 : 0, tags || null);
 
-    const insertAnswer = db.prepare('INSERT INTO sentence_answers (sentence_id, correct_answer, normalized_answer, sort_order) VALUES (?, ?, ?, ?)');
+    const insertAnswer = db.prepare('INSERT INTO sentence_answers (sentence_id, accepted_answer, normalized_answer, sort_order) VALUES (?, ?, ?, ?)');
     answers.forEach((ans, idx) => {
       insertAnswer.run(result.lastInsertRowid, ans, normalizeFlexible(ans), idx);
     });
@@ -94,20 +96,22 @@ router.post('/', authenticate, requireAdmin, (req, res) => {
 // Update sentence (admin)
 router.put('/:id', authenticate, requireAdmin, (req, res) => {
   try {
-    const { bangla_sentence, answers, advanced_version, explanation, hint, category_id, subcategory_id, difficulty, checking_mode, is_active, is_premium, tags } = req.body;
+    const { bangla_sentence, answers, advanced_version, explanation, structure_hint, fill_blank_hint, first_word_hint, word_bank_words, category_id, subcategory_id, difficulty, practice_mode, homework_mode, checking_mode, is_active, is_premium, tags } = req.body;
 
     db.prepare(`
       UPDATE sentences SET bangla_sentence = COALESCE(?, bangla_sentence), advanced_version = ?,
-      explanation = ?, hint = ?, category_id = COALESCE(?, category_id),
-      subcategory_id = COALESCE(?, subcategory_id), difficulty = COALESCE(?, difficulty),
-      checking_mode = COALESCE(?, checking_mode), is_active = COALESCE(?, is_active),
-      is_premium = COALESCE(?, is_premium), tags = ?
+      explanation = ?, structure_hint = ?, fill_blank_hint = ?, first_word_hint = ?, word_bank_words = ?,
+      category_id = COALESCE(?, category_id), subcategory_id = COALESCE(?, subcategory_id),
+      difficulty = COALESCE(?, difficulty), practice_mode = COALESCE(?, practice_mode),
+      homework_mode = COALESCE(?, homework_mode), checking_mode = COALESCE(?, checking_mode),
+      is_active = COALESCE(?, is_active), is_premium = COALESCE(?, is_premium), tags = ?,
+      updated_at = datetime('now')
       WHERE id = ?
-    `).run(bangla_sentence, advanced_version, explanation, hint, category_id, subcategory_id, difficulty, checking_mode, is_active, is_premium, tags, req.params.id);
+    `).run(bangla_sentence, advanced_version, explanation, structure_hint, fill_blank_hint, first_word_hint, word_bank_words, category_id, subcategory_id, difficulty, practice_mode, homework_mode, checking_mode, is_active, is_premium, tags, req.params.id);
 
     if (answers && answers.length > 0) {
       db.prepare('DELETE FROM sentence_answers WHERE sentence_id = ?').run(req.params.id);
-      const insertAnswer = db.prepare('INSERT INTO sentence_answers (sentence_id, correct_answer, normalized_answer, sort_order) VALUES (?, ?, ?, ?)');
+      const insertAnswer = db.prepare('INSERT INTO sentence_answers (sentence_id, accepted_answer, normalized_answer, sort_order) VALUES (?, ?, ?, ?)');
       answers.forEach((ans, idx) => {
         insertAnswer.run(req.params.id, ans, normalizeFlexible(ans), idx);
       });
